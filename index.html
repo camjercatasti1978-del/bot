@@ -362,7 +362,8 @@
             highestPrice: 0,
             trailingActive: false,
             consecutiveWins: 0,
-            consecutiveLosses: 0
+            consecutiveLosses: 0,
+            approvedTokens: {} // Track approved tokens
         };
 
         function verifyRealMode() {
@@ -1098,12 +1099,19 @@
                     debugLog('💰 Achat via PancakeSwap (USDT → Token)...', 'info');
                     debugLog(`🎯 Token: ${tokenAddress}`, 'info');
                     
-                    debugLog('📝 Approbation USDT...', 'info');
-                    const usdtContractSigner = new ethers.Contract(USDT, USDT_ABI, state.wallet);
-                    const approveTx = await usdtContractSigner.approve(PANCAKE_ROUTER, amountInWei);
-                    debugLog(`⏳ Approbation: ${approveTx.hash.slice(0, 10)}...`, 'info');
-                    await approveTx.wait();
-                    debugLog(`✅ USDT approuvé`, 'success');
+                    // Approuver USDT une seule fois par session
+                    if (!state.approvedTokens['USDT']) {
+                        debugLog('📝 Première approbation USDT...', 'info');
+                        const usdtContractSigner = new ethers.Contract(USDT, USDT_ABI, state.wallet);
+                        const maxApproval = ethers.constants.MaxUint256;
+                        const approveTx = await usdtContractSigner.approve(PANCAKE_ROUTER, maxApproval);
+                        debugLog(`⏳ Approbation: ${approveTx.hash.slice(0, 10)}...`, 'info');
+                        await approveTx.wait();
+                        state.approvedTokens['USDT'] = true;
+                        debugLog(`✅ USDT approuvé définitivement`, 'success');
+                    } else {
+                        debugLog(`✅ USDT déjà approuvé`, 'info');
+                    }
                     
                     const routerABI = [
                         'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)'
@@ -1175,11 +1183,19 @@
                         return;
                     }
                     
-                    debugLog('📝 Approbation du router...', 'info');
-                    const approveTx = await tokenContract.approve(PANCAKE_ROUTER, tokenBalance);
-                    debugLog(`⏳ Approbation: ${approveTx.hash.slice(0, 10)}...`, 'info');
-                    await approveTx.wait();
-                    debugLog(`✅ Approbation confirmée`, 'success');
+                    // Approuver le token une seule fois par token
+                    const tokenKey = `TOKEN_${tokenAddress}`;
+                    if (!state.approvedTokens[tokenKey]) {
+                        debugLog('📝 Première approbation du token...', 'info');
+                        const maxApproval = ethers.constants.MaxUint256;
+                        const approveTx = await tokenContract.approve(PANCAKE_ROUTER, maxApproval);
+                        debugLog(`⏳ Approbation: ${approveTx.hash.slice(0, 10)}...`, 'info');
+                        await approveTx.wait();
+                        state.approvedTokens[tokenKey] = true;
+                        debugLog(`✅ Token approuvé définitivement`, 'success');
+                    } else {
+                        debugLog(`✅ Token déjà approuvé`, 'info');
+                    }
                     
                     const router = new ethers.Contract(PANCAKE_ROUTER, routerABI, state.wallet);
                     const path = [tokenAddress, USDT];
