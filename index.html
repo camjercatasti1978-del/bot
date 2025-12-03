@@ -47,7 +47,7 @@
                         ✅ AUTO-VALIDATION JERCAT - Transactions automatiques
                     </p>
                     <p class="text-yellow-400 font-bold text-sm mt-1">
-                        💵 TRADING EN USDT • 📈 Position Sizing Dynamique
+                        💵 TRADING EN USDT • 📈 Position Sizing Dynamique • ⛽ Frais Gas Inclus
                     </p>
                 </div>
                 
@@ -105,7 +105,7 @@
             </div>
             <div id="debugConsole" class="bg-black/70 rounded-lg p-4 h-48 overflow-y-auto font-mono text-xs" style="border: 1px solid #f59e0b;">
                 <p style="color: #f59e0b;">✅ JERCAT PROFIT MAXIMIZER initialisé</p>
-                <p style="color: #10b981;">💵 Mode USDT activé • 📈 Trailing Stop activé</p>
+                <p style="color: #10b981;">💵 Mode USDT activé • 📈 Trailing Stop activé • ⛽ Frais gas inclus</p>
             </div>
         </div>
 
@@ -142,7 +142,7 @@
         </div>
 
         <!-- Stats -->
-        <div id="statsCards" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div id="statsCards" class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
             <div class="glass-effect rounded-xl p-4 border-2" style="border-color: #f59e0b;">
                 <p class="text-xs text-gray-400">Capital</p>
                 <p class="text-2xl font-bold" style="color: #f59e0b;"><span id="capitalDisplay">0</span> USDT</p>
@@ -154,8 +154,13 @@
             </div>
             
             <div class="glass-effect rounded-xl p-4 border border-gray-500">
-                <p class="text-xs text-gray-400">Profit</p>
+                <p class="text-xs text-gray-400">Profit NET</p>
                 <p class="text-2xl font-bold text-green-400"><span id="profitDisplay">0</span> USDT</p>
+            </div>
+            
+            <div class="glass-effect rounded-xl p-4 border border-gray-500">
+                <p class="text-xs text-gray-400">Frais Gas</p>
+                <p class="text-sm font-bold text-orange-400"><span id="gasFeesDisplay">0</span> USDT</p>
             </div>
             
             <div class="glass-effect rounded-xl p-4 border border-gray-500">
@@ -189,7 +194,7 @@
                     <p class="text-xs mt-1 font-mono text-gray-400" id="rsi-display">--</p>
                 </div>
 
-                <div class="glass-effect border-2 border-slate-600 rounded-lg p-3" id="signal-macd">
+                <div class="glass-effect rounded-lg p-3" id="signal-macd">
                     <div class="flex justify-between items-center">
                         <span class="text-sm font-bold" style="color: #f59e0b;">MACD</span>
                         <span class="text-2xl" id="signal-macd-icon">⚪</span>
@@ -294,7 +299,7 @@
                             <p class="text-xs font-bold" style="color: #f59e0b;">🚀 Mode Aggressif</p>
                             <p class="text-xs text-gray-400 mt-1">• Position Sizing Dynamique</p>
                             <p class="text-xs text-gray-400">• Trailing Stop Activé</p>
-                            <p class="text-xs text-gray-400">• Multi-Entrées</p>
+                            <p class="text-xs text-gray-400">• ⛽ Frais Gas Inclus</p>
                         </div>
                     </div>
                 </div>
@@ -340,6 +345,7 @@
             connectionMethod: null,
             selectedCrypto: 'BTCUSDT',
             currentPrice: 0,
+            bnbPrice: 600, // Prix BNB en USDT (mis à jour dynamiquement)
             priceHistory: [],
             volumeHistory: [],
             tradingCapital: 0,
@@ -349,7 +355,7 @@
             botRunning: false,
             isTrading: false,
             trades: [],
-            portfolio: { profit: 0, wins: 0, losses: 0 },
+            portfolio: { profit: 0, wins: 0, losses: 0, totalGasFees: 0 },
             indicators: {},
             signals: {},
             currentPosition: null,
@@ -394,6 +400,7 @@
         }
 
         let ws = null;
+        let bnbWs = null;
         let botInterval = null;
         let chart = null;
 
@@ -432,7 +439,20 @@
         }
 
         function clearDebugLog() {
-            document.getElementById('debugConsole').innerHTML = '<p style="color: #f59e0b;">✅ Console effacée - PROFIT MAXIMIZER actif</p><p style="color: #10b981;">🚀 Mode Aggressif activé</p>';
+            document.getElementById('debugConsole').innerHTML = '<p style="color: #f59e0b;">✅ Console effacée - PROFIT MAXIMIZER actif</p><p style="color: #10b981;">🚀 Mode Aggressif activé • ⛽ Frais gas inclus</p>';
+        }
+
+        // Fonction pour suivre le prix du BNB
+        function connectBNBPriceWebSocket() {
+            if (bnbWs) bnbWs.close();
+            bnbWs = new WebSocket('wss://stream.binance.com:9443/ws/bnbusdt@ticker');
+            
+            bnbWs.onopen = () => debugLog('🟢 WebSocket BNB Price connecté', 'info');
+            
+            bnbWs.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                state.bnbPrice = parseFloat(data.c);
+            };
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -440,6 +460,7 @@
             debugLog('🚀 Stratégie agressive activée', 'success');
             debugLog('💵 Mode USDT activé', 'success');
             debugLog('📈 Trailing Stop activé', 'success');
+            debugLog('⛽ Calcul frais gas activé', 'success');
             
             if (document.referrer.includes('test-seven-mu-77.vercel.app') || 
                 document.referrer.includes('jercat-wallet') ||
@@ -459,6 +480,7 @@
             
             initChart();
             loadCryptos();
+            connectBNBPriceWebSocket(); // Tracker le prix du BNB
         });
 
         window.addEventListener('message', async (event) => {
@@ -665,6 +687,11 @@
                 const data = JSON.parse(e.data);
                 state.currentPrice = parseFloat(data.c);
                 const volume = parseFloat(data.v);
+                
+                // Mettre à jour le prix BNB si on trade du BNB
+                if (state.selectedCrypto === 'BNBUSDT') {
+                    state.bnbPrice = state.currentPrice;
+                }
                 
                 state.priceHistory.push(state.currentPrice);
                 state.volumeHistory.push(volume);
@@ -933,6 +960,7 @@
             debugLog(`⚠️ TRANSACTIONS BLOCKCHAIN RÉELLES!`, 'warning');
             debugLog(`📈 Trailing Stop activé`, 'success');
             debugLog(`🎯 Position sizing dynamique`, 'success');
+            debugLog(`⛽ Frais gas calculés et déduits`, 'success');
             if (state.jercatTrusted) {
                 debugLog('🤖 Mode AUTO-VALIDATION: Trades sans confirmation', 'success');
             }
@@ -959,6 +987,7 @@
                 debugLog('🛑 BOT ARRÊTÉ', 'warning');
                 const ret = ((state.tradingCapital - state.initialCapital) / state.initialCapital * 100);
                 debugLog(`📊 Performance: ${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%`, ret >= 0 ? 'success' : 'error');
+                debugLog(`⛽ Total frais gas: ${state.portfolio.totalGasFees.toFixed(2)} USDT`, 'warning');
             }
         }
 
@@ -1277,12 +1306,25 @@
             } else {
                 const profitPct = ((state.currentPrice - state.lastBuyPrice) / state.lastBuyPrice) * 100;
                 const grossProfit = state.positionAmount * (profitPct / 100);
-                netProfit = grossProfit;
                 
-                state.tradingCapital += state.positionAmount + grossProfit;
+                // 🔧 CORRECTION : Convertir les frais BNB en USDT
+                const totalGasFeesInBnb = state.entryFees + actualFees;
+                const totalGasFeesInUsdt = totalGasFeesInBnb * state.bnbPrice;
                 
+                // Profit NET = Profit brut - Frais gas (entrée + sortie)
+                netProfit = grossProfit - totalGasFeesInUsdt;
+                
+                // Mettre à jour le capital
+                state.tradingCapital += state.positionAmount + netProfit;
+                
+                // Logs détaillés
                 debugLog(`📉 POSITION FERMÉE`, netProfit >= 0 ? 'success' : 'error');
-                debugLog(`💎 NET: ${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} USDT`, netProfit >= 0 ? 'success' : 'error');
+                debugLog(`💰 Profit brut: ${grossProfit >= 0 ? '+' : ''}${grossProfit.toFixed(2)} USDT`, grossProfit >= 0 ? 'success' : 'error');
+                debugLog(`⛽ Frais gas totaux: ${totalGasFeesInUsdt.toFixed(2)} USDT (${totalGasFeesInBnb.toFixed(6)} BNB @ $${state.bnbPrice.toFixed(2)})`, 'warning');
+                debugLog(`💎 Profit NET: ${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} USDT`, netProfit >= 0 ? 'success' : 'error');
+                
+                // Tracking des frais gas
+                state.portfolio.totalGasFees += totalGasFeesInUsdt;
                 
                 // Reset trailing
                 state.trailingActive = false;
@@ -1349,6 +1391,7 @@
                                 ${parseFloat(t.profitPct) >= 0 ? '+' : ''}${t.profitPct}%
                             </p>
                             <p class="text-xs ${parseFloat(t.profit) >= 0 ? 'text-green-400' : 'text-red-400'}">${parseFloat(t.profit) >= 0 ? '+' : ''}${t.profit} USDT</p>
+                            <p class="text-xs text-orange-400">⛽ ${t.fees} BNB</p>
                         ` : '<p class="text-sm text-gray-400">Ouvert</p>'}
                     </div>
                 </div>
@@ -1411,6 +1454,7 @@
             
             document.getElementById('modeStatus').innerHTML = `<span style="color: #f59e0b;">${state.tradingMode === 'aggressive' ? '🚀 AGGRESSIVE' : state.tradingMode === 'balanced' ? '⚖️ BALANCED' : '🛡️ CONSERVATIVE'}</span>`;
             document.getElementById('profitDisplay').textContent = state.portfolio.profit.toFixed(2);
+            document.getElementById('gasFeesDisplay').textContent = state.portfolio.totalGasFees.toFixed(2);
             document.getElementById('tradesCount').textContent = state.trades.length;
             
             // ROI
