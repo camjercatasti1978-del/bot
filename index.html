@@ -111,7 +111,7 @@
 
         <!-- Crypto Selector -->
         <div id="cryptoSelector" class="glass-effect rounded-xl p-6 mb-6 border border-gray-500">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">Crypto</label>
                     <select id="cryptoSelect" onchange="changeCrypto()" class="w-full glass-effect rounded-lg px-4 py-3 focus:outline-none border-2 border-gray-600 text-lg font-semibold cursor-pointer text-white" style="border-color: #334155;">
@@ -126,38 +126,6 @@
                         <option value="balanced">⚖️ BALANCED (4 indicateurs)</option>
                         <option value="conservative">🛡️ CONSERVATIVE (6 indicateurs)</option>
                     </select>
-                </div>
-            </div>
-            
-            <!-- Token personnalisé -->
-            <div class="border-t-2 border-gray-700 pt-4 mt-4">
-                <label class="block text-sm text-gray-400 mb-2">🔍 <span class="font-bold">Token personnalisé</span> (adresse contrat BSC):</label>
-                <div class="flex gap-3">
-                    <input type="text" id="customTokenAddress" placeholder="0x..." class="flex-1 glass-effect rounded-lg px-4 py-3 focus:outline-none border-2 border-gray-600 font-mono text-sm text-white">
-                    <button onclick="addCustomToken()" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-lg font-semibold whitespace-nowrap">
-                        ✅ Vérifier
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">💡 Exemple: 0x197CF8951d93325A9333857Ee5330daF7aC4bcCF (JERCAT)</p>
-                
-                <!-- Info token custom -->
-                <div id="customTokenInfo" class="hidden mt-4 glass-effect rounded-lg p-4 border-2 border-green-500">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="text-2xl">✅</span>
-                                <div>
-                                    <p class="font-bold text-xl text-green-400" id="customTokenSymbol">-</p>
-                                    <p class="text-sm text-gray-400" id="customTokenName">-</p>
-                                </div>
-                            </div>
-                            <p class="text-xs text-gray-500 font-mono break-all" id="customTokenAddr">-</p>
-                            <p class="text-sm text-gray-400 mt-2">Décimales: <span class="text-white font-bold" id="customTokenDecimals">-</span></p>
-                        </div>
-                        <button onclick="useCustomToken()" class="ml-4 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-lg font-semibold whitespace-nowrap">
-                            🚀 Trader
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -371,7 +339,6 @@
             isConnected: false,
             connectionMethod: null,
             selectedCrypto: 'BTCUSDT',
-            customToken: null,
             currentPrice: 0,
             priceHistory: [],
             volumeHistory: [],
@@ -422,97 +389,7 @@
         ];
         
         function getTokenAddress(symbol) {
-            if (symbol && symbol.startsWith('CUSTOM_') && state.customToken) {
-                return state.customToken.address;
-            }
             return TOKEN_ADDRESSES[symbol] || WBNB;
-        }
-
-        async function addCustomToken() {
-            const address = document.getElementById('customTokenAddress').value.trim();
-            
-            if (!address || !address.startsWith('0x') || address.length !== 42) {
-                alert('❌ Adresse invalide! Format: 0x... (42 caractères)');
-                return;
-            }
-            
-            debugLog(`🔍 Vérification du token: ${address}...`, 'info');
-            
-            try {
-                if (!state.provider) {
-                    alert('❌ Connectez votre wallet d\'abord!');
-                    return;
-                }
-                
-                const network = await state.provider.getNetwork();
-                if (network.chainId !== 56) {
-                    alert('❌ Changez vers BSC Mainnet (ChainID 56)');
-                    return;
-                }
-                
-                const tokenContract = new ethers.Contract(
-                    address,
-                    [
-                        'function name() view returns (string)',
-                        'function symbol() view returns (string)',
-                        'function decimals() view returns (uint8)'
-                    ],
-                    state.provider
-                );
-                
-                debugLog('📡 Récupération des infos...', 'info');
-                const [name, symbol, decimals] = await Promise.all([
-                    tokenContract.name(),
-                    tokenContract.symbol(),
-                    tokenContract.decimals()
-                ]);
-                
-                state.customToken = {
-                    address: address,
-                    name: name,
-                    symbol: symbol,
-                    decimals: decimals
-                };
-                
-                document.getElementById('customTokenSymbol').textContent = symbol;
-                document.getElementById('customTokenName').textContent = name;
-                document.getElementById('customTokenAddr').textContent = address;
-                document.getElementById('customTokenDecimals').textContent = decimals;
-                document.getElementById('customTokenInfo').classList.remove('hidden');
-                
-                debugLog(`✅ Token trouvé: ${symbol} (${name})`, 'success');
-                debugLog(`📊 Adresse: ${address}`, 'info');
-                debugLog(`🔢 Decimals: ${decimals}`, 'info');
-                
-            } catch (error) {
-                debugLog(`❌ Erreur: ${error.message}`, 'error');
-                alert(`❌ Impossible de récupérer les infos!\n\nVérifiez:\n- L'adresse est correcte\n- Le token existe sur BSC\n- Vous êtes sur BSC Mainnet`);
-            }
-        }
-
-        function useCustomToken() {
-            if (!state.customToken) {
-                alert('❌ Aucun token custom défini!');
-                return;
-            }
-            
-            const customSymbol = `CUSTOM_${state.customToken.symbol}`;
-            state.selectedCrypto = customSymbol;
-            
-            const sel = document.getElementById('cryptoSelect');
-            const existingOption = Array.from(sel.options).find(opt => opt.value === customSymbol);
-            if (!existingOption) {
-                const option = document.createElement('option');
-                option.value = customSymbol;
-                option.textContent = `🎯 ${state.customToken.symbol} (Custom)`;
-                sel.appendChild(option);
-            }
-            sel.value = customSymbol;
-            
-            debugLog(`🚀 Trading activé: ${state.customToken.symbol}`, 'success');
-            debugLog(`📍 Adresse: ${state.customToken.address}`, 'info');
-            
-            alert(`✅ Token personnalisé activé!\n\n${state.customToken.symbol} - ${state.customToken.name}\n\nDéfinissez votre capital et démarrez le bot!`);
         }
 
         let ws = null;
@@ -1071,7 +948,7 @@
                 if (signal.signal && !state.isTrading) {
                     executeTrade(signal.signal, signal.score, signal.reason);
                 }
-            }, 2000); // Check plus fréquent
+            }, 2000);
         }
 
         function stopBot() {
