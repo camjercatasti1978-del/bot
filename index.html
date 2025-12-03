@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 JERCAT Trading Bot - PROFIT MAXIMIZER</title>
+    <title>🤖 JERCAT Trading Bot - PROFIT MAXIMIZER V4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -38,7 +38,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 class="text-5xl font-black gradient-text mb-2" style="text-shadow: 0 4px 8px rgba(0,0,0,0.8), 0 0 40px rgba(245, 158, 11, 0.6), 0 0 80px rgba(245, 158, 11, 0.4); transform: translateZ(0); filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.5));">
-                        🤖 JERCAT PROFIT MAXIMIZER
+                        🤖 JERCAT PROFIT MAXIMIZER V4
                     </h1>
                     <p class="text-gray-400">
                         ⚡ Stratégie Agressive • 🎯 Trailing Stop • 🔥 Multi-Entrées
@@ -47,7 +47,7 @@
                         ✅ AUTO-VALIDATION JERCAT - Transactions automatiques
                     </p>
                     <p class="text-yellow-400 font-bold text-sm mt-1">
-                        💵 TRADING EN USDT • 📈 Position Sizing Dynamique • ⛽ Frais Gas Inclus
+                        💵 TRADING EN USDT • 📈 Position Sizing Dynamique • ⛽ Frais Gas Inclus • 📉 Re-BUY sur Baisse
                     </p>
                 </div>
                 
@@ -104,8 +104,8 @@
                 </button>
             </div>
             <div id="debugConsole" class="bg-black/70 rounded-lg p-4 h-48 overflow-y-auto font-mono text-xs" style="border: 1px solid #f59e0b;">
-                <p style="color: #f59e0b;">✅ JERCAT PROFIT MAXIMIZER initialisé</p>
-                <p style="color: #10b981;">💵 Mode USDT activé • 📈 Trailing Stop activé • ⛽ Frais gas inclus</p>
+                <p style="color: #f59e0b;">✅ JERCAT PROFIT MAXIMIZER V4 initialisé</p>
+                <p style="color: #10b981;">💵 Mode USDT activé • 📈 Trailing Stop activé • ⛽ Frais gas inclus • 📉 Re-BUY sur Baisse</p>
             </div>
         </div>
 
@@ -301,17 +301,17 @@
                             <p class="text-xs text-gray-500 mt-1">⏱️ Temps minimum après SELL</p>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Re-BUY si prix < ancien BUY (%)</label>
-                            <input type="number" id="rebuyMargin" value="0.5" min="0" max="3" step="0.25" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
-                            <p class="text-xs text-gray-500 mt-1">📉 Racheter UNIQUEMENT si moins cher (+ marge)</p>
+                            <label class="block text-xs text-gray-400 mb-1">Re-BUY après baisse (%)</label>
+                            <input type="number" id="rebuyMargin" value="2" min="0.5" max="5" step="0.5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <p class="text-xs text-gray-500 mt-1">📉 Racheter après baisse de X% depuis dernier prix</p>
                         </div>
                         <div class="rounded-lg p-3 border-2" style="background: rgba(245, 158, 11, 0.2); border-color: #f59e0b;">
-                            <p class="text-xs font-bold" style="color: #f59e0b;">🚀 Mode Aggressif V3</p>
+                            <p class="text-xs font-bold" style="color: #f59e0b;">🚀 Mode Aggressif V4</p>
                             <p class="text-xs text-gray-400 mt-1">• Position Sizing Dynamique</p>
                             <p class="text-xs text-gray-400">• Trailing Stop Activé</p>
                             <p class="text-xs text-gray-400">• ⛽ Frais Gas Inclus</p>
                             <p class="text-xs text-gray-400">• ⏱️ Cooldown Intelligent</p>
-                            <p class="text-xs text-gray-400">• 📉 Attente Baisse Prix</p>
+                            <p class="text-xs text-gray-400">• 📉 Re-BUY sur Baisse</p>
                         </div>
                     </div>
                 </div>
@@ -358,7 +358,7 @@
             connectionMethod: null,
             selectedCrypto: 'BTCUSDT',
             currentPrice: 0,
-            bnbPrice: 600, // Prix BNB en USDT (mis à jour dynamiquement)
+            bnbPrice: 600,
             priceHistory: [],
             volumeHistory: [],
             tradingCapital: 0,
@@ -382,11 +382,12 @@
             trailingActive: false,
             consecutiveWins: 0,
             consecutiveLosses: 0,
-            approvedTokens: {}, // Track approved tokens
-            lastSellTime: 0, // Timestamp du dernier SELL
-            lastSellPrice: 0, // Prix au moment du SELL
-            lastActualBuyPrice: 0, // Prix du dernier ACHAT (pour comparaison)
-            cooldownActive: false // Cooldown actif ou non
+            approvedTokens: {},
+            lastSellTime: 0,
+            lastSellPrice: 0,
+            lastActualBuyPrice: 0,
+            cooldownActive: false,
+            highestPriceSinceSell: 0
         };
 
         function verifyRealMode() {
@@ -456,10 +457,9 @@
         }
 
         function clearDebugLog() {
-            document.getElementById('debugConsole').innerHTML = '<p style="color: #f59e0b;">✅ Console effacée - PROFIT MAXIMIZER actif</p><p style="color: #10b981;">🚀 Mode Aggressif activé • ⛽ Frais gas inclus</p>';
+            document.getElementById('debugConsole').innerHTML = '<p style="color: #f59e0b;">✅ Console effacée - PROFIT MAXIMIZER V4 actif</p><p style="color: #10b981;">🚀 Mode Aggressif activé • ⛽ Frais gas inclus • 📉 Re-BUY sur Baisse</p>';
         }
 
-        // Fonction pour suivre le prix du BNB
         function connectBNBPriceWebSocket() {
             if (bnbWs) bnbWs.close();
             bnbWs = new WebSocket('wss://stream.binance.com:9443/ws/bnbusdt@ticker');
@@ -473,11 +473,12 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            debugLog('🤖 JERCAT PROFIT MAXIMIZER initialisé', 'success');
+            debugLog('🤖 JERCAT PROFIT MAXIMIZER V4 initialisé', 'success');
             debugLog('🚀 Stratégie agressive activée', 'success');
             debugLog('💵 Mode USDT activé', 'success');
             debugLog('📈 Trailing Stop activé', 'success');
             debugLog('⛽ Calcul frais gas activé', 'success');
+            debugLog('📉 Re-BUY sur baisse activé', 'success');
             
             if (document.referrer.includes('test-seven-mu-77.vercel.app') || 
                 document.referrer.includes('jercat-wallet') ||
@@ -497,7 +498,7 @@
             
             initChart();
             loadCryptos();
-            connectBNBPriceWebSocket(); // Tracker le prix du BNB
+            connectBNBPriceWebSocket();
         });
 
         window.addEventListener('message', async (event) => {
@@ -705,9 +706,12 @@
                 state.currentPrice = parseFloat(data.c);
                 const volume = parseFloat(data.v);
                 
-                // Mettre à jour le prix BNB si on trade du BNB
                 if (state.selectedCrypto === 'BNBUSDT') {
                     state.bnbPrice = state.currentPrice;
+                }
+                
+                if (state.cooldownActive && state.currentPrice > state.highestPriceSinceSell) {
+                    state.highestPriceSinceSell = state.currentPrice;
                 }
                 
                 state.priceHistory.push(state.currentPrice);
@@ -719,11 +723,10 @@
                 if (state.priceHistory.length >= 50) updateIndicators();
                 if (state.priceHistory.length % 5 === 0) updateChart();
                 
-                // Trailing Stop Logic
                 if (state.currentPosition && state.trailingActive) {
                     if (state.currentPrice > state.highestPrice) {
                         state.highestPrice = state.currentPrice;
-                        debugLog(`📈 Nouveau plus haut: $${state.highestPrice.toFixed(2)}`, 'success');
+                        debugLog(`📈 Nouveau plus haut: ${state.highestPrice.toFixed(2)}`, 'success');
                     }
                 }
                 
@@ -824,7 +827,6 @@
         function updateSignals() {
             const { ema9, ema21, ema50, rsi, macdHist, bbUpper, bbLower, volume, volumeAvg, atr } = state.indicators;
             
-            // Calcul de tous les signaux
             const allSignals = {
                 trend: ema9 > ema21,
                 rsi: rsi >= 20 && rsi <= 50,
@@ -840,17 +842,14 @@
                 })()
             };
             
-            // Filtrage selon le mode
             let activeSignals = {};
             if (state.tradingMode === 'aggressive') {
-                // 3 indicateurs essentiels
                 activeSignals = {
                     trend: allSignals.trend,
                     rsi: allSignals.rsi,
                     volume: allSignals.volume
                 };
             } else if (state.tradingMode === 'balanced') {
-                // 4 indicateurs
                 activeSignals = {
                     trend: allSignals.trend,
                     rsi: allSignals.rsi,
@@ -858,13 +857,11 @@
                     macd: allSignals.macd
                 };
             } else {
-                // 6 indicateurs (conservative)
                 activeSignals = allSignals;
             }
             
             state.signals = activeSignals;
             
-            // UI Update
             const distBB = ((state.currentPrice - bbLower) / bbLower) * 100;
             const atrPct = (atr / state.currentPrice) * 100;
             
@@ -875,7 +872,6 @@
             updateSignalUI('volume', allSignals.volume, `${volumeAvg > 0 ? (volume / volumeAvg * 100).toFixed(0) : 100}%`);
             updateSignalUI('volatility', allSignals.volatility, `${atrPct.toFixed(2)}%`);
             
-            // Désactiver visuellement les signaux non utilisés
             if (state.tradingMode === 'aggressive') {
                 ['macd', 'bollinger', 'volatility'].forEach(sig => {
                     const container = document.getElementById(`signal-${sig}`);
@@ -972,12 +968,13 @@
                 return;
             }
             
-            debugLog('🚀 BOT DÉMARRÉ - MODE PROFIT MAXIMIZER', 'success');
+            debugLog('🚀 BOT DÉMARRÉ - MODE PROFIT MAXIMIZER V4', 'success');
             debugLog(`💰 Capital: ${state.tradingCapital} USDT`, 'info');
             debugLog(`⚠️ TRANSACTIONS BLOCKCHAIN RÉELLES!`, 'warning');
             debugLog(`📈 Trailing Stop activé`, 'success');
             debugLog(`🎯 Position sizing dynamique`, 'success');
             debugLog(`⛽ Frais gas calculés et déduits`, 'success');
+            debugLog(`📉 Re-BUY sur baisse activé`, 'success');
             if (state.jercatTrusted) {
                 debugLog('🤖 Mode AUTO-VALIDATION: Trades sans confirmation', 'success');
             }
@@ -1010,53 +1007,43 @@
 
         function getTradeSignal() {
             const minScore = parseInt(document.getElementById('minScore').value);
-            const cooldownTime = parseInt(document.getElementById('cooldownTime').value) * 1000; // Convertir en ms
+            const cooldownTime = parseInt(document.getElementById('cooldownTime').value) * 1000;
             const rebuyMargin = parseFloat(document.getElementById('rebuyMargin').value);
             
             if (!state.currentPosition) {
-                // Vérifier le cooldown après un SELL
                 if (state.cooldownActive) {
                     const timeSinceLastSell = Date.now() - state.lastSellTime;
                     const remainingCooldown = Math.ceil((cooldownTime - timeSinceLastSell) / 1000);
                     
-                    // Calcul du prix cible pour re-BUY : 
-                    // Prix d'achat précédent - marge (pour couvrir frais gas + marge de sécurité)
-                    const targetBuyPrice = state.lastActualBuyPrice * (1 - rebuyMargin / 100);
-                    const priceVsTarget = ((state.currentPrice - targetBuyPrice) / targetBuyPrice) * 100;
+                    const dropFromHigh = ((state.highestPriceSinceSell - state.currentPrice) / state.highestPriceSinceSell) * 100;
                     
-                    // Conditions pour autoriser un nouveau BUY :
-                    // 1. Temps minimum écoulé (cooldown)
-                    // 2. Prix actuel < Prix d'achat précédent (avec marge)
                     const timeCondition = timeSinceLastSell >= cooldownTime;
-                    const priceCondition = state.currentPrice <= targetBuyPrice;
+                    const priceCondition = dropFromHigh >= rebuyMargin;
                     
                     if (!timeCondition || !priceCondition) {
-                        // Cooldown encore actif
                         let statusText = '';
                         
-                        // Affichage du temps
                         if (!timeCondition) {
                             statusText += `⏱️ ${remainingCooldown}s`;
                         } else {
                             statusText += `⏱️ ✅`;
                         }
                         
-                        // Affichage du prix
                         statusText += ' • 📉 ';
                         
                         if (priceCondition) {
-                            statusText += `✅ $${state.currentPrice.toFixed(2)} < $${targetBuyPrice.toFixed(2)}`;
+                            statusText += `✅ -${dropFromHigh.toFixed(2)}% depuis ${state.highestPriceSinceSell.toFixed(2)}`;
                         } else {
-                            statusText += `$${state.currentPrice.toFixed(2)} > $${targetBuyPrice.toFixed(2)} (+${priceVsTarget.toFixed(2)}%)`;
+                            const neededDrop = rebuyMargin - dropFromHigh;
+                            statusText += `-${dropFromHigh.toFixed(2)}% (besoin: -${neededDrop.toFixed(2)}% de plus)`;
                         }
                         
                         document.getElementById('cooldownStatus').innerHTML = `<span class="text-yellow-400 text-xs">${statusText}</span>`;
                         return { signal: null, score: 0 };
                     } else {
-                        // Cooldown terminé ET prix assez bas
                         state.cooldownActive = false;
                         document.getElementById('cooldownStatus').innerHTML = '<span class="text-gray-400">⚪ OFF</span>';
-                        debugLog(`✅ Cooldown terminé - Prix actuel ($${state.currentPrice.toFixed(2)}) < Ancien achat ($${state.lastActualBuyPrice.toFixed(2)})`, 'success');
+                        debugLog(`✅ Cooldown terminé - Baisse de ${dropFromHigh.toFixed(2)}% détectée (depuis ${state.highestPriceSinceSell.toFixed(2)} → ${state.currentPrice.toFixed(2)})`, 'success');
                     }
                 }
                 
@@ -1078,13 +1065,11 @@
                 const trailingStart = parseFloat(document.getElementById('trailingStart').value);
                 const trailingDelta = parseFloat(document.getElementById('trailingDelta').value);
                 
-                // Stop Loss
                 if (profitPct <= -stopLossPct) {
                     debugLog(`🛑 Stop Loss déclenché: ${profitPct.toFixed(2)}%`, 'error');
                     return { signal: 'SELL', score: 100, reason: `SL ${profitPct.toFixed(2)}%` };
                 }
                 
-                // Activation Trailing Stop
                 if (!state.trailingActive && profitPct >= trailingStart) {
                     state.trailingActive = true;
                     state.highestPrice = state.currentPrice;
@@ -1092,7 +1077,6 @@
                     document.getElementById('trailingStatus').innerHTML = '<span class="text-green-400">🟢 ON</span>';
                 }
                 
-                // Trailing Stop
                 if (state.trailingActive) {
                     const dropFromHigh = ((state.highestPrice - state.currentPrice) / state.highestPrice) * 100;
                     if (dropFromHigh >= trailingDelta) {
@@ -1101,13 +1085,11 @@
                     }
                 }
                 
-                // Take Profit
                 if (profitPct >= takeProfitPct) {
                     debugLog(`💎 Take Profit atteint: ${profitPct.toFixed(2)}%`, 'success');
                     return { signal: 'SELL', score: 100, reason: `TP +${profitPct.toFixed(2)}%` };
                 }
                 
-                // RSI Overbought avec profit
                 if (state.indicators.rsi > 70 && profitPct > 1) {
                     return { signal: 'SELL', score: 100, reason: `RSI:${state.indicators.rsi.toFixed(0)}` };
                 }
@@ -1121,22 +1103,18 @@
             
             debugLog(`${tradeType === 'BUY' ? '🟢' : '🔴'} ${tradeType} - ${reason}`, tradeType === 'BUY' ? 'success' : 'warning');
             
-            // Position Sizing Dynamique
             let basePercent = parseFloat(document.getElementById('tradePercent').value);
             
-            // Augmenter position après wins
             if (state.consecutiveWins >= 2) {
                 basePercent = Math.min(basePercent * 1.3, 30);
                 debugLog(`🔥 Série de wins! Position sizing: ${basePercent.toFixed(1)}%`, 'success');
             }
             
-            // Réduire position après losses
             if (state.consecutiveLosses >= 2) {
                 basePercent = Math.max(basePercent * 0.7, 5);
                 debugLog(`⚠️ Série de losses. Position sizing: ${basePercent.toFixed(1)}%`, 'warning');
             }
             
-            // Augmenter selon le score
             if (score >= 80) {
                 basePercent = Math.min(basePercent * 1.2, 35);
                 debugLog(`🎯 Score élevé (${score}%)! Position sizing: ${basePercent.toFixed(1)}%`, 'success');
@@ -1193,7 +1171,6 @@
                     debugLog('💰 Achat via PancakeSwap (USDT → Token)...', 'info');
                     debugLog(`🎯 Token: ${tokenAddress}`, 'info');
                     
-                    // Approuver USDT une seule fois par session
                     if (!state.approvedTokens['USDT']) {
                         debugLog('📝 Première approbation USDT...', 'info');
                         const usdtContractSigner = new ethers.Contract(USDT, USDT_ABI, state.wallet);
@@ -1277,7 +1254,6 @@
                         return;
                     }
                     
-                    // Approuver le token une seule fois par token
                     if (!state.approvedTokens[tokenAddress]) {
                         debugLog('📝 Première approbation du token...', 'info');
                         const maxApproval = ethers.constants.MaxUint256;
@@ -1359,7 +1335,7 @@
                 state.tradingCapital -= tradeAmount;
                 state.currentPosition = 'BUY';
                 state.lastBuyPrice = state.currentPrice;
-                state.lastActualBuyPrice = state.currentPrice; // Enregistrer pour comparaison future
+                state.lastActualBuyPrice = state.currentPrice;
                 state.positionAmount = tradeAmount;
                 state.entryFees = actualFees;
                 state.highestPrice = state.currentPrice;
@@ -1367,43 +1343,36 @@
                 
                 debugLog(`📈 POSITION OUVERTE`, 'success');
                 debugLog(`💵 Montant: ${state.positionAmount.toFixed(2)} USDT`, 'info');
-                debugLog(`📍 Prix d'achat: $${state.currentPrice.toFixed(2)} (référence pour futur re-BUY)`, 'info');
+                debugLog(`📍 Prix d'achat: ${state.currentPrice.toFixed(2)}`, 'info');
                 
             } else {
                 const profitPct = ((state.currentPrice - state.lastBuyPrice) / state.lastBuyPrice) * 100;
                 const grossProfit = state.positionAmount * (profitPct / 100);
                 
-                // 🔧 CORRECTION : Convertir les frais BNB en USDT
                 const totalGasFeesInBnb = state.entryFees + actualFees;
                 const totalGasFeesInUsdt = totalGasFeesInBnb * state.bnbPrice;
                 
-                // Profit NET = Profit brut - Frais gas (entrée + sortie)
                 netProfit = grossProfit - totalGasFeesInUsdt;
                 
-                // Mettre à jour le capital
                 state.tradingCapital += state.positionAmount + netProfit;
                 
-                // Logs détaillés
                 debugLog(`📉 POSITION FERMÉE`, netProfit >= 0 ? 'success' : 'error');
                 debugLog(`💰 Profit brut: ${grossProfit >= 0 ? '+' : ''}${grossProfit.toFixed(2)} USDT`, grossProfit >= 0 ? 'success' : 'error');
-                debugLog(`⛽ Frais gas totaux: ${totalGasFeesInUsdt.toFixed(2)} USDT (${totalGasFeesInBnb.toFixed(6)} BNB @ $${state.bnbPrice.toFixed(2)})`, 'warning');
+                debugLog(`⛽ Frais gas totaux: ${totalGasFeesInUsdt.toFixed(2)} USDT (${totalGasFeesInBnb.toFixed(6)} BNB @ ${state.bnbPrice.toFixed(2)})`, 'warning');
                 debugLog(`💎 Profit NET: ${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} USDT`, netProfit >= 0 ? 'success' : 'error');
                 
-                // Tracking des frais gas
                 state.portfolio.totalGasFees += totalGasFeesInUsdt;
                 
-                // Activer le cooldown
                 state.lastSellTime = Date.now();
-                state.lastSellPrice = state.currentPrice; // Prix de vente (pour info)
+                state.lastSellPrice = state.currentPrice;
+                state.highestPriceSinceSell = state.currentPrice;
                 state.cooldownActive = true;
                 const cooldownTime = parseInt(document.getElementById('cooldownTime').value);
                 const rebuyMargin = parseFloat(document.getElementById('rebuyMargin').value);
-                const targetBuyPrice = state.lastActualBuyPrice * (1 - rebuyMargin / 100);
                 debugLog(`⏱️ Cooldown activé: ${cooldownTime}s`, 'warning');
-                debugLog(`📉 Re-BUY autorisé si prix < $${targetBuyPrice.toFixed(2)} (ancien achat: $${state.lastActualBuyPrice.toFixed(2)} - ${rebuyMargin}%)`, 'warning');
-                document.getElementById('cooldownStatus').innerHTML = `<span class="text-yellow-400 text-xs">⏱️ ${cooldownTime}s • 📉 Attente $${targetBuyPrice.toFixed(2)}</span>`;
+                debugLog(`📉 Re-BUY après baisse de ${rebuyMargin}% depuis le prochain plus haut`, 'warning');
+                document.getElementById('cooldownStatus').innerHTML = `<span class="text-yellow-400 text-xs">⏱️ ${cooldownTime}s • 📉 -${rebuyMargin}%</span>`;
                 
-                // Reset trailing
                 state.trailingActive = false;
                 state.highestPrice = 0;
                 document.getElementById('trailingStatus').innerHTML = '<span class="text-gray-400">⚪ OFF</span>';
@@ -1462,7 +1431,7 @@
                         <p class="text-xs text-gray-400 mt-1">${t.time}</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-sm font-mono">$${t.price}</p>
+                        <p class="text-sm font-mono">${t.price}</p>
                         ${t.type === 'SELL' ? `
                             <p class="text-lg font-bold ${parseFloat(t.profitPct) >= 0 ? 'text-green-400' : 'text-red-400'}">
                                 ${parseFloat(t.profitPct) >= 0 ? '+' : ''}${t.profitPct}%
@@ -1534,7 +1503,6 @@
             document.getElementById('gasFeesDisplay').textContent = state.portfolio.totalGasFees.toFixed(2);
             document.getElementById('tradesCount').textContent = state.trades.length;
             
-            // ROI
             if (state.initialCapital > 0) {
                 const roi = ((state.tradingCapital - state.initialCapital) / state.initialCapital) * 100;
                 document.getElementById('roiDisplay').textContent = `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%`;
