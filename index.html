@@ -295,11 +295,23 @@
                             <label class="block text-xs text-gray-400 mb-1">Score min (%)</label>
                             <input type="number" id="minScore" value="60" min="50" max="80" step="5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
                         </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Cooldown (secondes)</label>
+                            <input type="number" id="cooldownTime" value="60" min="30" max="300" step="30" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <p class="text-xs text-gray-500 mt-1">⏱️ Temps minimum après SELL</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Re-BUY si prix < ancien BUY (%)</label>
+                            <input type="number" id="rebuyMargin" value="0.5" min="0" max="3" step="0.25" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <p class="text-xs text-gray-500 mt-1">📉 Racheter UNIQUEMENT si moins cher (+ marge)</p>
+                        </div>
                         <div class="rounded-lg p-3 border-2" style="background: rgba(245, 158, 11, 0.2); border-color: #f59e0b;">
-                            <p class="text-xs font-bold" style="color: #f59e0b;">🚀 Mode Aggressif</p>
+                            <p class="text-xs font-bold" style="color: #f59e0b;">🚀 Mode Aggressif V3</p>
                             <p class="text-xs text-gray-400 mt-1">• Position Sizing Dynamique</p>
                             <p class="text-xs text-gray-400">• Trailing Stop Activé</p>
                             <p class="text-xs text-gray-400">• ⛽ Frais Gas Inclus</p>
+                            <p class="text-xs text-gray-400">• ⏱️ Cooldown Intelligent</p>
+                            <p class="text-xs text-gray-400">• 📉 Attente Baisse Prix</p>
                         </div>
                     </div>
                 </div>
@@ -312,6 +324,7 @@
                         <p>Position: <span id="positionStatus" class="text-gray-400">⚪ None</span></p>
                         <p>Trades: <span id="tradesCount" class="text-white">0</span></p>
                         <p>Trailing: <span id="trailingStatus" class="text-gray-400">⚪ OFF</span></p>
+                        <p>Cooldown: <span id="cooldownStatus" class="text-gray-400">⚪ OFF</span></p>
                         <p>Auto-Validation: <span id="jercatStatus" style="color: #f59e0b;">⏳ En attente...</span></p>
                     </div>
                 </div>
@@ -369,7 +382,11 @@
             trailingActive: false,
             consecutiveWins: 0,
             consecutiveLosses: 0,
-            approvedTokens: {} // Track approved tokens
+            approvedTokens: {}, // Track approved tokens
+            lastSellTime: 0, // Timestamp du dernier SELL
+            lastSellPrice: 0, // Prix au moment du SELL
+            lastActualBuyPrice: 0, // Prix du dernier ACHAT (pour comparaison)
+            cooldownActive: false // Cooldown actif ou non
         };
 
         function verifyRealMode() {
@@ -993,8 +1010,56 @@
 
         function getTradeSignal() {
             const minScore = parseInt(document.getElementById('minScore').value);
+            const cooldownTime = parseInt(document.getElementById('cooldownTime').value) * 1000; // Convertir en ms
+            const rebuyMargin = parseFloat(document.getElementById('rebuyMargin').value);
             
             if (!state.currentPosition) {
+                // Vérifier le cooldown après un SELL
+                if (state.cooldownActive) {
+                    const timeSinceLastSell = Date.now() - state.lastSellTime;
+                    const remainingCooldown = Math.ceil((cooldownTime - timeSinceLastSell) / 1000);
+                    
+                    // Calcul du prix cible pour re-BUY : 
+                    // Prix d'achat précédent - marge (pour couvrir frais gas + marge de sécurité)
+                    const targetBuyPrice = state.lastActualBuyPrice * (1 - rebuyMargin / 100);
+                    const priceVsTarget = ((state.currentPrice - targetBuyPrice) / targetBuyPrice) * 100;
+                    
+                    // Conditions pour autoriser un nouveau BUY :
+                    // 1. Temps minimum écoulé (cooldown)
+                    // 2. Prix actuel < Prix d'achat précédent (avec marge)
+                    const timeCondition = timeSinceLastSell >= cooldownTime;
+                    const priceCondition = state.currentPrice <= targetBuyPrice;
+                    
+                    if (!timeCondition || !priceCondition) {
+                        // Cooldown encore actif
+                        let statusText = '';
+                        
+                        // Affichage du temps
+                        if (!timeCondition) {
+                            statusText += `⏱️ ${remainingCooldown}s`;
+                        } else {
+                            statusText += `⏱️ ✅`;
+                        }
+                        
+                        // Affichage du prix
+                        statusText += ' • 📉 ';
+                        
+                        if (priceCondition) {
+                            statusText += `✅ $${state.currentPrice.toFixed(2)} < $${targetBuyPrice.toFixed(2)}`;
+                        } else {
+                            statusText += `$${state.currentPrice.toFixed(2)} > $${targetBuyPrice.toFixed(2)} (+${priceVsTarget.toFixed(2)}%)`;
+                        }
+                        
+                        document.getElementById('cooldownStatus').innerHTML = `<span class="text-yellow-400 text-xs">${statusText}</span>`;
+                        return { signal: null, score: 0 };
+                    } else {
+                        // Cooldown terminé ET prix assez bas
+                        state.cooldownActive = false;
+                        document.getElementById('cooldownStatus').innerHTML = '<span class="text-gray-400">⚪ OFF</span>';
+                        debugLog(`✅ Cooldown terminé - Prix actuel ($${state.currentPrice.toFixed(2)}) < Ancien achat ($${state.lastActualBuyPrice.toFixed(2)})`, 'success');
+                    }
+                }
+                
                 const signals = Object.values(state.signals);
                 const score = Math.round((signals.filter(s => s).length / signals.length) * 100);
                 
@@ -1213,17 +1278,16 @@
                     }
                     
                     // Approuver le token une seule fois par token
-                    const tokenKey = `TOKEN_${tokenAddress}`;
-                    if (!state.approvedTokens[tokenKey]) {
+                    if (!state.approvedTokens[tokenAddress]) {
                         debugLog('📝 Première approbation du token...', 'info');
                         const maxApproval = ethers.constants.MaxUint256;
                         const approveTx = await tokenContract.approve(PANCAKE_ROUTER, maxApproval);
                         debugLog(`⏳ Approbation: ${approveTx.hash.slice(0, 10)}...`, 'info');
                         await approveTx.wait();
-                        state.approvedTokens[tokenKey] = true;
-                        debugLog(`✅ Token approuvé définitivement`, 'success');
+                        state.approvedTokens[tokenAddress] = true;
+                        debugLog(`✅ Token ${tokenAddress.slice(0, 10)}... approuvé définitivement`, 'success');
                     } else {
-                        debugLog(`✅ Token déjà approuvé`, 'info');
+                        debugLog(`✅ Token ${tokenAddress.slice(0, 10)}... déjà approuvé`, 'info');
                     }
                     
                     const router = new ethers.Contract(PANCAKE_ROUTER, routerABI, state.wallet);
@@ -1295,6 +1359,7 @@
                 state.tradingCapital -= tradeAmount;
                 state.currentPosition = 'BUY';
                 state.lastBuyPrice = state.currentPrice;
+                state.lastActualBuyPrice = state.currentPrice; // Enregistrer pour comparaison future
                 state.positionAmount = tradeAmount;
                 state.entryFees = actualFees;
                 state.highestPrice = state.currentPrice;
@@ -1302,6 +1367,7 @@
                 
                 debugLog(`📈 POSITION OUVERTE`, 'success');
                 debugLog(`💵 Montant: ${state.positionAmount.toFixed(2)} USDT`, 'info');
+                debugLog(`📍 Prix d'achat: $${state.currentPrice.toFixed(2)} (référence pour futur re-BUY)`, 'info');
                 
             } else {
                 const profitPct = ((state.currentPrice - state.lastBuyPrice) / state.lastBuyPrice) * 100;
@@ -1325,6 +1391,17 @@
                 
                 // Tracking des frais gas
                 state.portfolio.totalGasFees += totalGasFeesInUsdt;
+                
+                // Activer le cooldown
+                state.lastSellTime = Date.now();
+                state.lastSellPrice = state.currentPrice; // Prix de vente (pour info)
+                state.cooldownActive = true;
+                const cooldownTime = parseInt(document.getElementById('cooldownTime').value);
+                const rebuyMargin = parseFloat(document.getElementById('rebuyMargin').value);
+                const targetBuyPrice = state.lastActualBuyPrice * (1 - rebuyMargin / 100);
+                debugLog(`⏱️ Cooldown activé: ${cooldownTime}s`, 'warning');
+                debugLog(`📉 Re-BUY autorisé si prix < $${targetBuyPrice.toFixed(2)} (ancien achat: $${state.lastActualBuyPrice.toFixed(2)} - ${rebuyMargin}%)`, 'warning');
+                document.getElementById('cooldownStatus').innerHTML = `<span class="text-yellow-400 text-xs">⏱️ ${cooldownTime}s • 📉 Attente $${targetBuyPrice.toFixed(2)}</span>`;
                 
                 // Reset trailing
                 state.trailingActive = false;
