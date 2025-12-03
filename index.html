@@ -121,9 +121,11 @@
                 
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">Mode Trading</label>
-                    <div class="w-full glass-effect rounded-lg px-4 py-3 border-2 text-lg font-semibold text-center" style="border-color: #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.2));">
-                        <span style="color: #f59e0b;">🚀 PROFIT MAXIMIZER</span>
-                    </div>
+                    <select id="tradingMode" onchange="changeTradingMode()" class="w-full glass-effect rounded-lg px-4 py-3 border-2 text-lg font-semibold cursor-pointer text-white" style="border-color: #f59e0b;">
+                        <option value="aggressive">🚀 AGGRESSIVE (3 indicateurs)</option>
+                        <option value="balanced">⚖️ BALANCED (4 indicateurs)</option>
+                        <option value="conservative">🛡️ CONSERVATIVE (6 indicateurs)</option>
+                    </select>
                 </div>
             </div>
             
@@ -376,7 +378,7 @@
             tradingCapital: 0,
             initialCapital: 0,
             capitalSet: false,
-            tradingMode: 'real',
+            tradingMode: 'aggressive',
             botRunning: false,
             isTrading: false,
             trades: [],
@@ -740,6 +742,40 @@
             connectWebSocket();
         }
 
+        function changeTradingMode() {
+            state.tradingMode = document.getElementById('tradingMode').value;
+            
+            const modeInfo = {
+                'aggressive': {
+                    name: '🚀 AGGRESSIVE',
+                    desc: '3 indicateurs (EMA+RSI+Volume)',
+                    minScore: 60,
+                    color: '#f59e0b'
+                },
+                'balanced': {
+                    name: '⚖️ BALANCED', 
+                    desc: '4 indicateurs (EMA+RSI+Volume+MACD)',
+                    minScore: 65,
+                    color: '#3b82f6'
+                },
+                'conservative': {
+                    name: '🛡️ CONSERVATIVE',
+                    desc: '6 indicateurs (Tous)',
+                    minScore: 70,
+                    color: '#10b981'
+                }
+            };
+            
+            const mode = modeInfo[state.tradingMode];
+            document.getElementById('minScore').value = mode.minScore;
+            
+            debugLog(`📊 Mode: ${mode.name}`, 'success');
+            debugLog(`📈 ${mode.desc}`, 'info');
+            debugLog(`🎯 Score minimum: ${mode.minScore}%`, 'info');
+            
+            alert(`✅ Mode changé: ${mode.name}\n\n${mode.desc}\nScore min: ${mode.minScore}%`);
+        }
+
         function connectWebSocket() {
             if (ws) ws.close();
             const symbol = state.selectedCrypto.toLowerCase();
@@ -866,27 +902,87 @@
         function updateSignals() {
             const { ema9, ema21, ema50, rsi, macdHist, bbUpper, bbLower, volume, volumeAvg, atr } = state.indicators;
             
-            // Signaux plus permissifs
-            state.signals.trend = ema9 > ema21;
-            state.signals.rsi = rsi >= 20 && rsi <= 50;
-            state.signals.macd = macdHist > 0 && state.lastMacdHist <= 0;
+            // Calcul de tous les signaux
+            const allSignals = {
+                trend: ema9 > ema21,
+                rsi: rsi >= 20 && rsi <= 50,
+                macd: macdHist > 0 && state.lastMacdHist <= 0,
+                bollinger: (() => {
+                    const distBB = ((state.currentPrice - bbLower) / bbLower) * 100;
+                    return distBB >= -1 && distBB <= 3;
+                })(),
+                volume: volume > volumeAvg * 1.2,
+                volatility: (() => {
+                    const atrPct = (atr / state.currentPrice) * 100;
+                    return atrPct > 0.5 && atrPct < 5;
+                })()
+            };
             
+            // Filtrage selon le mode
+            let activeSignals = {};
+            if (state.tradingMode === 'aggressive') {
+                // 3 indicateurs essentiels
+                activeSignals = {
+                    trend: allSignals.trend,
+                    rsi: allSignals.rsi,
+                    volume: allSignals.volume
+                };
+            } else if (state.tradingMode === 'balanced') {
+                // 4 indicateurs
+                activeSignals = {
+                    trend: allSignals.trend,
+                    rsi: allSignals.rsi,
+                    volume: allSignals.volume,
+                    macd: allSignals.macd
+                };
+            } else {
+                // 6 indicateurs (conservative)
+                activeSignals = allSignals;
+            }
+            
+            state.signals = activeSignals;
+            
+            // UI Update
             const distBB = ((state.currentPrice - bbLower) / bbLower) * 100;
-            state.signals.bollinger = distBB >= -1 && distBB <= 3;
-            
-            state.signals.volume = volume > volumeAvg * 1.2;
-            
             const atrPct = (atr / state.currentPrice) * 100;
-            state.signals.volatility = atrPct > 0.5 && atrPct < 5;
             
-            updateSignalUI('trend', state.signals.trend, `${ema9.toFixed(2)}`);
-            updateSignalUI('rsi', state.signals.rsi, `${rsi.toFixed(1)}`);
-            updateSignalUI('macd', state.signals.macd, `${macdHist.toFixed(4)}`);
-            updateSignalUI('bollinger', state.signals.bollinger, `${distBB.toFixed(2)}%`);
-            updateSignalUI('volume', state.signals.volume, `${volumeAvg > 0 ? (volume / volumeAvg * 100).toFixed(0) : 100}%`);
-            updateSignalUI('volatility', state.signals.volatility, `${atrPct.toFixed(2)}%`);
+            updateSignalUI('trend', allSignals.trend, `${ema9.toFixed(2)}`);
+            updateSignalUI('rsi', allSignals.rsi, `${rsi.toFixed(1)}`);
+            updateSignalUI('macd', allSignals.macd, `${macdHist.toFixed(4)}`);
+            updateSignalUI('bollinger', allSignals.bollinger, `${distBB.toFixed(2)}%`);
+            updateSignalUI('volume', allSignals.volume, `${volumeAvg > 0 ? (volume / volumeAvg * 100).toFixed(0) : 100}%`);
+            updateSignalUI('volatility', allSignals.volatility, `${atrPct.toFixed(2)}%`);
             
-            const signals = Object.values(state.signals);
+            // Désactiver visuellement les signaux non utilisés
+            if (state.tradingMode === 'aggressive') {
+                ['macd', 'bollinger', 'volatility'].forEach(sig => {
+                    const container = document.getElementById(`signal-${sig}`);
+                    if (container) {
+                        container.style.opacity = '0.3';
+                        container.title = 'Non utilisé en mode AGGRESSIVE';
+                    }
+                });
+            } else if (state.tradingMode === 'balanced') {
+                ['bollinger', 'volatility'].forEach(sig => {
+                    const container = document.getElementById(`signal-${sig}`);
+                    if (container) {
+                        container.style.opacity = '0.3';
+                        container.title = 'Non utilisé en mode BALANCED';
+                    }
+                });
+                const macdContainer = document.getElementById('signal-macd');
+                if (macdContainer) macdContainer.style.opacity = '1';
+            } else {
+                ['trend', 'rsi', 'macd', 'bollinger', 'volume', 'volatility'].forEach(sig => {
+                    const container = document.getElementById(`signal-${sig}`);
+                    if (container) {
+                        container.style.opacity = '1';
+                        container.title = '';
+                    }
+                });
+            }
+            
+            const signals = Object.values(activeSignals);
             const score = Math.round((signals.filter(s => s).length / signals.length) * 100);
             const minScore = parseInt(document.getElementById('minScore').value);
             
@@ -1420,7 +1516,7 @@
                 }
             }
             
-            document.getElementById('modeStatus').innerHTML = '<span style="color: #f59e0b;">🚀 PROFIT MAXIMIZER</span>';
+            document.getElementById('modeStatus').innerHTML = `<span style="color: #f59e0b;">${state.tradingMode === 'aggressive' ? '🚀 AGGRESSIVE' : state.tradingMode === 'balanced' ? '⚖️ BALANCED' : '🛡️ CONSERVATIVE'}</span>`;
             document.getElementById('profitDisplay').textContent = state.portfolio.profit.toFixed(2);
             document.getElementById('tradesCount').textContent = state.trades.length;
             
