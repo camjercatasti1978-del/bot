@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 JERCAT Trading Bot - Wallet Auto-Mode RÉEL (USDT)</title>
+    <title>🤖 JERCAT Trading Bot - PROFIT MAXIMIZER</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -38,16 +38,16 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 class="text-5xl font-black gradient-text mb-2" style="text-shadow: 0 4px 8px rgba(0,0,0,0.8), 0 0 40px rgba(245, 158, 11, 0.6), 0 0 80px rgba(245, 158, 11, 0.4); transform: translateZ(0); filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.5));">
-                        🤖 JERCAT Auto-Trading RÉEL
+                        🤖 JERCAT PROFIT MAXIMIZER
                     </h1>
                     <p class="text-gray-400">
-                        ⚡ Connexion Auto JERCAT Wallet • 🎯 Mode RÉEL Blockchain • 🔥 Zero-Click Trading
+                        ⚡ Stratégie Agressive • 🎯 Trailing Stop • 🔥 Multi-Entrées
                     </p>
                     <p class="text-green-400 font-bold text-sm mt-2">
-                        ✅ AUTO-VALIDATION JERCAT - Transactions automatiques sans confirmation
+                        ✅ AUTO-VALIDATION JERCAT - Transactions automatiques
                     </p>
                     <p class="text-yellow-400 font-bold text-sm mt-1">
-                        💵 TRADING EN USDT (au lieu de BNB)
+                        💵 TRADING EN USDT • 📈 Position Sizing Dynamique
                     </p>
                 </div>
                 
@@ -104,8 +104,8 @@
                 </button>
             </div>
             <div id="debugConsole" class="bg-black/70 rounded-lg p-4 h-48 overflow-y-auto font-mono text-xs" style="border: 1px solid #f59e0b;">
-                <p style="color: #f59e0b;">✅ JERCAT Bot initialisé - Auto-validation activée</p>
-                <p style="color: #10b981;">💵 Mode USDT activé (trading USDT → Tokens)</p>
+                <p style="color: #f59e0b;">✅ JERCAT PROFIT MAXIMIZER initialisé</p>
+                <p style="color: #10b981;">💵 Mode USDT activé • 📈 Trailing Stop activé</p>
             </div>
         </div>
 
@@ -122,7 +122,7 @@
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">Mode Trading</label>
                     <div class="w-full glass-effect rounded-lg px-4 py-3 border-2 text-lg font-semibold text-center" style="border-color: #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.2));">
-                        <span style="color: #f59e0b;">🤖 JERCAT AUTO-TRADING RÉEL (USDT)</span>
+                        <span style="color: #f59e0b;">🚀 PROFIT MAXIMIZER</span>
                     </div>
                 </div>
             </div>
@@ -137,7 +137,6 @@
                     </button>
                 </div>
                 <p class="text-xs text-gray-500 mt-2">💡 Exemple: 0x197CF8951d93325A9333857Ee5330daF7aC4bcCF (JERCAT)</p>
-                <p class="text-xs text-yellow-500 mt-1">⚠️ Vérifiez toujours l'adresse sur BscScan avant de trader!</p>
                 
                 <!-- Info token custom -->
                 <div id="customTokenInfo" class="hidden mt-4 glass-effect rounded-lg p-4 border-2 border-green-500">
@@ -173,7 +172,7 @@
         </div>
 
         <!-- Stats -->
-        <div id="statsCards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div id="statsCards" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div class="glass-effect rounded-xl p-4 border-2" style="border-color: #f59e0b;">
                 <p class="text-xs text-gray-400">Capital</p>
                 <p class="text-2xl font-bold" style="color: #f59e0b;"><span id="capitalDisplay">0</span> USDT</p>
@@ -193,11 +192,16 @@
                 <p class="text-xs text-gray-400">Win Rate</p>
                 <p class="text-2xl font-bold text-white" id="winRateDisplay">0%</p>
             </div>
+
+            <div class="glass-effect rounded-xl p-4 border border-gray-500">
+                <p class="text-xs text-gray-400">ROI</p>
+                <p class="text-2xl font-bold text-purple-400" id="roiDisplay">0%</p>
+            </div>
         </div>
 
         <!-- Signals -->
         <div class="glass-effect rounded-xl p-6 mb-6 border border-gray-500">
-            <h3 class="text-xl font-bold mb-4" style="color: #f59e0b;">⚡ Signaux (≥75%)</h3>
+            <h3 class="text-xl font-bold mb-4" style="color: #f59e0b;">⚡ Signaux (≥60%)</h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                 <div class="glass-effect border-2 border-slate-600 rounded-lg p-3" id="signal-trend">
                     <div class="flex justify-between items-center">
@@ -293,23 +297,34 @@
                     <h2 class="text-xl font-bold mb-4" style="color: #f59e0b;">⚙️ Paramètres</h2>
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">% par trade</label>
-                            <input type="number" id="tradePercent" value="10" min="1" max="100" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <label class="block text-xs text-gray-400 mb-1">% par trade (base)</label>
+                            <input type="number" id="tradePercent" value="15" min="5" max="50" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">TP Mult</label>
-                            <input type="number" id="tpMultiplier" value="3" min="1.5" max="5" step="0.25" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <label class="block text-xs text-gray-400 mb-1">Take Profit (%)</label>
+                            <input type="number" id="takeProfitPct" value="5" min="2" max="20" step="0.5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">SL Mult</label>
-                            <input type="number" id="slMultiplier" value="1.5" min="0.5" max="3" step="0.25" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <label class="block text-xs text-gray-400 mb-1">Trailing Start (%)</label>
+                            <input type="number" id="trailingStart" value="2" min="1" max="10" step="0.5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Trailing Delta (%)</label>
+                            <input type="number" id="trailingDelta" value="1.5" min="0.5" max="5" step="0.25" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Stop Loss (%)</label>
+                            <input type="number" id="stopLossPct" value="2" min="1" max="10" step="0.5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Score min (%)</label>
-                            <input type="number" id="minScore" value="75" min="50" max="100" step="5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
+                            <input type="number" id="minScore" value="60" min="50" max="80" step="5" class="w-full glass-effect rounded-lg px-3 py-2 text-sm border-2 border-gray-600 text-white">
                         </div>
                         <div class="rounded-lg p-3 border-2" style="background: rgba(245, 158, 11, 0.2); border-color: #f59e0b;">
-                            <p class="text-xs font-bold" style="color: #f59e0b;">✅ Profit minimum: 3%</p>
+                            <p class="text-xs font-bold" style="color: #f59e0b;">🚀 Mode Aggressif</p>
+                            <p class="text-xs text-gray-400 mt-1">• Position Sizing Dynamique</p>
+                            <p class="text-xs text-gray-400">• Trailing Stop Activé</p>
+                            <p class="text-xs text-gray-400">• Multi-Entrées</p>
                         </div>
                     </div>
                 </div>
@@ -321,6 +336,7 @@
                         <p>Mode: <span id="modeStatus" class="text-gray-400">--</span></p>
                         <p>Position: <span id="positionStatus" class="text-gray-400">⚪ None</span></p>
                         <p>Trades: <span id="tradesCount" class="text-white">0</span></p>
+                        <p>Trailing: <span id="trailingStatus" class="text-gray-400">⚪ OFF</span></p>
                         <p>Auto-Validation: <span id="jercatStatus" style="color: #f59e0b;">⏳ En attente...</span></p>
                     </div>
                 </div>
@@ -372,9 +388,12 @@
             lastMacdHist: 0,
             positionAmount: 0,
             entryFees: 0,
-            minProfitPct: 3.0,
             jercatTrusted: false,
-            usdtBalance: 0
+            usdtBalance: 0,
+            highestPrice: 0,
+            trailingActive: false,
+            consecutiveWins: 0,
+            consecutiveLosses: 0
         };
 
         function verifyRealMode() {
@@ -533,14 +552,14 @@
         }
 
         function clearDebugLog() {
-            document.getElementById('debugConsole').innerHTML = '<p style="color: #f59e0b;">✅ Console effacée - JERCAT Bot actif</p><p style="color: #10b981;">💵 Mode USDT activé</p>';
+            document.getElementById('debugConsole').innerHTML = '<p style="color: #f59e0b;">✅ Console effacée - PROFIT MAXIMIZER actif</p><p style="color: #10b981;">🚀 Mode Aggressif activé</p>';
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            debugLog('🤖 JERCAT Trading Bot initialisé', 'success');
-            debugLog('🎯 Profit minimum: 3%', 'success');
+            debugLog('🤖 JERCAT PROFIT MAXIMIZER initialisé', 'success');
+            debugLog('🚀 Stratégie agressive activée', 'success');
             debugLog('💵 Mode USDT activé', 'success');
-            debugLog('🔗 Intégration JERCAT Wallet active', 'info');
+            debugLog('📈 Trailing Stop activé', 'success');
             
             if (document.referrer.includes('test-seven-mu-77.vercel.app') || 
                 document.referrer.includes('jercat-wallet') ||
@@ -742,6 +761,14 @@
                 if (state.priceHistory.length >= 50) updateIndicators();
                 if (state.priceHistory.length % 5 === 0) updateChart();
                 
+                // Trailing Stop Logic
+                if (state.currentPosition && state.trailingActive) {
+                    if (state.currentPrice > state.highestPrice) {
+                        state.highestPrice = state.currentPrice;
+                        debugLog(`📈 Nouveau plus haut: $${state.highestPrice.toFixed(2)}`, 'success');
+                    }
+                }
+                
                 document.getElementById('currentPrice').textContent = state.currentPrice.toFixed(2);
             };
         }
@@ -839,17 +866,18 @@
         function updateSignals() {
             const { ema9, ema21, ema50, rsi, macdHist, bbUpper, bbLower, volume, volumeAvg, atr } = state.indicators;
             
-            state.signals.trend = ema9 > ema21 && ema21 > ema50;
-            state.signals.rsi = rsi >= 25 && rsi <= 45;
+            // Signaux plus permissifs
+            state.signals.trend = ema9 > ema21;
+            state.signals.rsi = rsi >= 20 && rsi <= 50;
             state.signals.macd = macdHist > 0 && state.lastMacdHist <= 0;
             
             const distBB = ((state.currentPrice - bbLower) / bbLower) * 100;
-            state.signals.bollinger = distBB >= -0.5 && distBB <= 2;
+            state.signals.bollinger = distBB >= -1 && distBB <= 3;
             
-            state.signals.volume = volume > volumeAvg * 1.5;
+            state.signals.volume = volume > volumeAvg * 1.2;
             
             const atrPct = (atr / state.currentPrice) * 100;
-            state.signals.volatility = atrPct > 1 && atrPct < 4;
+            state.signals.volatility = atrPct > 0.5 && atrPct < 5;
             
             updateSignalUI('trend', state.signals.trend, `${ema9.toFixed(2)}`);
             updateSignalUI('rsi', state.signals.rsi, `${rsi.toFixed(1)}`);
@@ -926,9 +954,11 @@
                 return;
             }
             
-            debugLog('🚀 BOT DÉMARRÉ - MODE RÉEL', 'success');
+            debugLog('🚀 BOT DÉMARRÉ - MODE PROFIT MAXIMIZER', 'success');
             debugLog(`💰 Capital: ${state.tradingCapital} USDT`, 'info');
             debugLog(`⚠️ TRANSACTIONS BLOCKCHAIN RÉELLES!`, 'warning');
+            debugLog(`📈 Trailing Stop activé`, 'success');
+            debugLog(`🎯 Position sizing dynamique`, 'success');
             if (state.jercatTrusted) {
                 debugLog('🤖 Mode AUTO-VALIDATION: Trades sans confirmation', 'success');
             }
@@ -945,7 +975,7 @@
                 if (signal.signal && !state.isTrading) {
                     executeTrade(signal.signal, signal.score, signal.reason);
                 }
-            }, 3000);
+            }, 2000); // Check plus fréquent
         }
 
         function stopBot() {
@@ -964,6 +994,7 @@
             if (!state.currentPosition) {
                 const signals = Object.values(state.signals);
                 const score = Math.round((signals.filter(s => s).length / signals.length) * 100);
+                
                 if (score >= minScore) {
                     const reasons = [];
                     if (state.signals.trend) reasons.push('EMA↑');
@@ -974,27 +1005,42 @@
                 return { signal: null, score: 0 };
             } else {
                 const profitPct = ((state.currentPrice - state.lastBuyPrice) / state.lastBuyPrice) * 100;
-                const atrPct = (state.indicators.atr / state.lastBuyPrice) * 100;
-                const tpMult = parseFloat(document.getElementById('tpMultiplier').value);
-                const slMult = parseFloat(document.getElementById('slMultiplier').value);
+                const takeProfitPct = parseFloat(document.getElementById('takeProfitPct').value);
+                const stopLossPct = parseFloat(document.getElementById('stopLossPct').value);
+                const trailingStart = parseFloat(document.getElementById('trailingStart').value);
+                const trailingDelta = parseFloat(document.getElementById('trailingDelta').value);
                 
-                const dynamicTP = atrPct * tpMult;
-                const dynamicSL = -atrPct * slMult;
-                
-                if (profitPct >= state.minProfitPct) {
-                    debugLog(`💎 Profit atteint: ${profitPct.toFixed(2)}% (min: ${state.minProfitPct}%)`, 'success');
-                    return { signal: 'SELL', score: 100, reason: `Profit +${profitPct.toFixed(2)}%` };
+                // Stop Loss
+                if (profitPct <= -stopLossPct) {
+                    debugLog(`🛑 Stop Loss déclenché: ${profitPct.toFixed(2)}%`, 'error');
+                    return { signal: 'SELL', score: 100, reason: `SL ${profitPct.toFixed(2)}%` };
                 }
                 
-                if (profitPct <= dynamicSL) {
-                    return { signal: 'SELL', score: 100, reason: `SL ${dynamicSL.toFixed(2)}%` };
+                // Activation Trailing Stop
+                if (!state.trailingActive && profitPct >= trailingStart) {
+                    state.trailingActive = true;
+                    state.highestPrice = state.currentPrice;
+                    debugLog(`📈 Trailing Stop ACTIVÉ à +${profitPct.toFixed(2)}%`, 'success');
+                    document.getElementById('trailingStatus').innerHTML = '<span class="text-green-400">🟢 ON</span>';
                 }
                 
-                if (profitPct >= dynamicTP) {
-                    return { signal: 'SELL', score: 100, reason: `TP +${dynamicTP.toFixed(2)}%` };
+                // Trailing Stop
+                if (state.trailingActive) {
+                    const dropFromHigh = ((state.highestPrice - state.currentPrice) / state.highestPrice) * 100;
+                    if (dropFromHigh >= trailingDelta) {
+                        debugLog(`📉 Trailing Stop: Baisse de ${dropFromHigh.toFixed(2)}% depuis le plus haut`, 'warning');
+                        return { signal: 'SELL', score: 100, reason: `Trailing -${dropFromHigh.toFixed(2)}%` };
+                    }
                 }
                 
-                if (state.indicators.rsi > 75 && profitPct > 0.5) {
+                // Take Profit
+                if (profitPct >= takeProfitPct) {
+                    debugLog(`💎 Take Profit atteint: ${profitPct.toFixed(2)}%`, 'success');
+                    return { signal: 'SELL', score: 100, reason: `TP +${profitPct.toFixed(2)}%` };
+                }
+                
+                // RSI Overbought avec profit
+                if (state.indicators.rsi > 70 && profitPct > 1) {
                     return { signal: 'SELL', score: 100, reason: `RSI:${state.indicators.rsi.toFixed(0)}` };
                 }
                 
@@ -1007,8 +1053,28 @@
             
             debugLog(`${tradeType === 'BUY' ? '🟢' : '🔴'} ${tradeType} - ${reason}`, tradeType === 'BUY' ? 'success' : 'warning');
             
-            const percent = parseFloat(document.getElementById('tradePercent').value);
-            const tradeAmount = (state.tradingCapital * percent) / 100;
+            // Position Sizing Dynamique
+            let basePercent = parseFloat(document.getElementById('tradePercent').value);
+            
+            // Augmenter position après wins
+            if (state.consecutiveWins >= 2) {
+                basePercent = Math.min(basePercent * 1.3, 30);
+                debugLog(`🔥 Série de wins! Position sizing: ${basePercent.toFixed(1)}%`, 'success');
+            }
+            
+            // Réduire position après losses
+            if (state.consecutiveLosses >= 2) {
+                basePercent = Math.max(basePercent * 0.7, 5);
+                debugLog(`⚠️ Série de losses. Position sizing: ${basePercent.toFixed(1)}%`, 'warning');
+            }
+            
+            // Augmenter selon le score
+            if (score >= 80) {
+                basePercent = Math.min(basePercent * 1.2, 35);
+                debugLog(`🎯 Score élevé (${score}%)! Position sizing: ${basePercent.toFixed(1)}%`, 'success');
+            }
+            
+            const tradeAmount = (state.tradingCapital * basePercent) / 100;
             
             let netProfit = 0;
             let actualFees = 0;
@@ -1048,7 +1114,7 @@
                 }
                 
                 debugLog('🔗 Exécution BLOCKCHAIN sur BSC...', 'warning');
-                debugLog(`💰 Montant du trade: ${tradeAmount.toFixed(2)} USDT`, 'info');
+                debugLog(`💰 Montant du trade: ${tradeAmount.toFixed(2)} USDT (${basePercent.toFixed(1)}%)`, 'info');
                 
                 const tokenAddress = getTokenAddress(state.selectedCrypto);
                 const amountInWei = ethers.utils.parseUnits(tradeAmount.toFixed(6), 18);
@@ -1213,6 +1279,8 @@
                 state.lastBuyPrice = state.currentPrice;
                 state.positionAmount = tradeAmount;
                 state.entryFees = actualFees;
+                state.highestPrice = state.currentPrice;
+                state.trailingActive = false;
                 
                 debugLog(`📈 POSITION OUVERTE`, 'success');
                 debugLog(`💵 Montant: ${state.positionAmount.toFixed(2)} USDT`, 'info');
@@ -1227,11 +1295,23 @@
                 debugLog(`📉 POSITION FERMÉE`, netProfit >= 0 ? 'success' : 'error');
                 debugLog(`💎 NET: ${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} USDT`, netProfit >= 0 ? 'success' : 'error');
                 
+                // Reset trailing
+                state.trailingActive = false;
+                state.highestPrice = 0;
+                document.getElementById('trailingStatus').innerHTML = '<span class="text-gray-400">⚪ OFF</span>';
+                
                 state.currentPosition = null;
                 state.entryFees = 0;
                 
-                if (netProfit > 0) state.portfolio.wins++;
-                else state.portfolio.losses++;
+                if (netProfit > 0) {
+                    state.portfolio.wins++;
+                    state.consecutiveWins++;
+                    state.consecutiveLosses = 0;
+                } else {
+                    state.portfolio.losses++;
+                    state.consecutiveLosses++;
+                    state.consecutiveWins = 0;
+                }
                 state.portfolio.profit += netProfit;
             }
             
@@ -1246,7 +1326,8 @@
                 fees: actualFees.toFixed(6),
                 reason: reason,
                 score: score,
-                mode: 'real'
+                mode: 'real',
+                positionSize: basePercent.toFixed(1)
             };
             
             state.trades.unshift(newTrade);
@@ -1267,7 +1348,8 @@
                             <span class="${t.type === 'BUY' ? 'text-green-400' : 'text-red-400'} text-xl">${t.type === 'BUY' ? '🟢' : '🔴'}</span>
                             <span class="font-bold">${t.type}</span>
                             <span class="text-xs bg-purple-400/20 px-2 py-1 rounded">${t.reason}</span>
-                            <span class="text-xs bg-orange-400/20 text-orange-400 px-2 py-1 rounded font-bold">🤖 JERCAT AUTO</span>
+                            ${t.positionSize ? `<span class="text-xs bg-blue-400/20 text-blue-400 px-2 py-1 rounded">${t.positionSize}%</span>` : ''}
+                            <span class="text-xs bg-orange-400/20 text-orange-400 px-2 py-1 rounded font-bold">🤖 AUTO</span>
                         </div>
                         <p class="text-xs text-gray-400 mt-1">${t.time}</p>
                     </div>
@@ -1338,9 +1420,15 @@
                 }
             }
             
-            document.getElementById('modeStatus').innerHTML = '<span style="color: #f59e0b;">🤖 JERCAT AUTO (USDT)</span>';
+            document.getElementById('modeStatus').innerHTML = '<span style="color: #f59e0b;">🚀 PROFIT MAXIMIZER</span>';
             document.getElementById('profitDisplay').textContent = state.portfolio.profit.toFixed(2);
             document.getElementById('tradesCount').textContent = state.trades.length;
+            
+            // ROI
+            if (state.initialCapital > 0) {
+                const roi = ((state.tradingCapital - state.initialCapital) / state.initialCapital) * 100;
+                document.getElementById('roiDisplay').textContent = `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%`;
+            }
             
             if (state.currentPosition) {
                 const profitPct = ((state.currentPrice - state.lastBuyPrice) / state.lastBuyPrice) * 100;
