@@ -1,0 +1,21 @@
+{
+  "name": "jercat-trading-bot",
+  "version": "5.0.0",
+  "description": "Bot de trading automatique JERCAT sur BSC avec PancakeSwap",
+  "main": "index.html",
+  "scripts": {
+    "start": "echo 'Static site - no build needed'",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": [
+    "jercat",
+    "trading",
+    "bot",
+    "bsc",
+    "pancakeswap",
+    "crypto"
+  ],
+  "author": "JERCAT Ecosystem",
+  "license": "UNLICENSED",
+  "private": true
+}
