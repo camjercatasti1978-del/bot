@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: jercat-trading-bot
+    env: static
+    buildCommand: echo "No build needed for static site"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer-when-downgrade
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
